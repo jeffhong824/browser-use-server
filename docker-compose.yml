@@ -1,0 +1,47 @@
+services:
+  browser-use-api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: browser-use-saas
+    ports:
+      - "${API_PORT:-8000}:8000"
+    env_file:
+      - .env
+    environment:
+      - API_PORT=${API_PORT:-8000}
+      - LOG_LEVEL=${LOG_LEVEL:-INFO}
+      - HOST=${HOST:-0.0.0.0}
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - LLM_MODEL=${LLM_MODEL:-gpt-4o}
+      - BROWSER_HEADLESS=${BROWSER_HEADLESS:-true}
+      - BROWSER_DEMO_MODE=${BROWSER_DEMO_MODE:-false}
+      - BROWSER_WINDOW_WIDTH=${BROWSER_WINDOW_WIDTH:-1280}
+      - BROWSER_WINDOW_HEIGHT=${BROWSER_WINDOW_HEIGHT:-720}
+      - RECORD_VIDEO=${RECORD_VIDEO:-true}
+      - VIDEO_DIR=${VIDEO_DIR:-/app/recordings}
+      - CAPTURE_SCREENSHOTS=${CAPTURE_SCREENSHOTS:-true}
+      - SCREENSHOTS_DIR=${SCREENSHOTS_DIR:-/app/screenshots}
+      - DATA_DIR=${DATA_DIR:-/data}
+      - OUTPUT_DIR=${OUTPUT_DIR:-/outputs}
+    volumes:
+      - ./recordings:/app/recordings
+      - ./screenshots:/app/screenshots
+      - ./data:/app/data
+      - ./outputs:/app/outputs
+    networks:
+      - browser-use-network
+    restart: unless-stopped
+    # For headless browser, increase shared memory for Chromium
+    shm_size: '2gb'
+    # Security options for running Chromium in Docker
+    security_opt:
+      - seccomp:unconfined
+    # For non-headless mode, you may need:
+    # - /tmp/.X11-unix:/tmp/.X11-unix:rw
+    # - DISPLAY=${DISPLAY}
+
+networks:
+  browser-use-network:
+    driver: bridge
+

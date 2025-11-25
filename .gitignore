@@ -1,0 +1,48 @@
+# Python cache
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.Python
+
+# Virtualenv
+.env
+.venv
+env/
+venv/
+ENV/
+
+# OS / IDE
+.DS_Store
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Data & logs
+data/
+dataset/
+outputs/
+artifacts/
+recordings/
+*.log
+*.mp4
+
+# Docker & build
+*.pid
+*.egg-info/
+dist/
+build/
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Browser profiles
+profile/
+user_data/
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+

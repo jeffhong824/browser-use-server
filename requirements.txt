@@ -1,0 +1,36 @@
+# FastAPI and Web Server
+fastapi==0.115.0
+uvicorn[standard]==0.32.0
+websockets>=15.0.1  # Required by cdp-use (browser-use dependency)
+python-multipart==0.0.12
+
+# Browser Use (will install its own dependencies)
+# Install with video support for MP4 recording
+browser-use[video]==0.9.7
+
+# Playwright for browser installation (required by browser-use)
+playwright>=1.40.0
+
+# OpenAI
+openai>=1.0.0
+
+# Environment and Config
+python-dotenv>=1.0.0
+pydantic>=2.0.0
+pydantic-settings>=2.0.0
+
+# Logging
+loguru>=0.7.0
+
+# Utilities
+aiofiles>=24.0.0
+httpx>=0.28.1  # Required by browser-use 0.9.7
+
+# Testing
+pytest>=8.0.0
+pytest-asyncio>=0.23.0
+
+# Video recording dependencies (included in browser-use[video])
+# imageio==2.34.0
+# imageio-ffmpeg==0.5.1
+
