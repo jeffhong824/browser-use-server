@@ -403,7 +403,8 @@ class BrowserAgentService:
                             else:
                                 logger.debug(f"Could not capture screenshot: no take_screenshot method and no page access")
                     except Exception as e:
-                        logger.warning(f"⚠️  Could not capture screenshot: {e}", exc_info=True)
+                        # Use logger.opt(exception=True) to avoid formatting issues with exception messages
+                        logger.opt(exception=True).warning("⚠️  Could not capture screenshot: {}", str(e))
                 
                 # Get step summary
                 step_info = {
@@ -445,7 +446,8 @@ class BrowserAgentService:
                     logger.error("⏰ Agent execution timed out after 10 minutes")
                     raise
                 except Exception as e:
-                    logger.error(f"❌ Agent execution error: {e}", exc_info=True)
+                    # Use logger.opt(exception=True) to avoid formatting issues with exception messages
+                    logger.opt(exception=True).error("❌ Agent execution error: {}", str(e))
                     raise
             
             agent_task = asyncio.create_task(run_agent_with_timeout())
@@ -536,7 +538,8 @@ class BrowserAgentService:
                     except Exception as e:
                         logger.debug(f"Could not list directory: {e}")
             except Exception as e:
-                logger.error(f"📹 Error finding video file: {e}", exc_info=True)
+                # Use logger.opt(exception=True) to avoid formatting issues with exception messages
+                logger.opt(exception=True).error("📹 Error finding video file: {}", str(e))
                 video_path = None
             
             # Extract final result from history - look for done action result
@@ -640,7 +643,8 @@ class BrowserAgentService:
             }
 
         except asyncio.TimeoutError as e:
-            logger.error(f"⏰ Browser agent timeout: {e}", exc_info=True)
+            # Use logger.opt(exception=True) to avoid formatting issues with exception messages
+            logger.opt(exception=True).error("⏰ Browser agent timeout: {}", str(e))
             error_msg = "瀏覽器啟動或執行逾時。這可能是由於：\n1. 瀏覽器啟動時間過長\n2. 網路連線問題\n3. Docker 容器資源不足\n\n建議：\n- 檢查 Docker 容器資源（CPU/記憶體）\n- 確認網路連線正常\n- 嘗試重新啟動服務"
             yield {
                 "type": "error",
@@ -653,7 +657,8 @@ class BrowserAgentService:
                 },
             }
         except Exception as e:
-            logger.error(f"❌ Error in browser agent: {e}", exc_info=True)
+            # Use logger.opt(exception=True) to avoid formatting issues with exception messages
+            logger.opt(exception=True).error("❌ Error in browser agent: {}", str(e))
             error_type = type(e).__name__
             error_msg = str(e)
             
