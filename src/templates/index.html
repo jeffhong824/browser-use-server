@@ -483,7 +483,7 @@
                         playsinline
                         webkit-playsinline
                     >
-                        您的瀏覽器不支援視頻播放
+                        您的瀏覽器不支援影片播放
                     </video>
                 </div>
                 
@@ -609,6 +609,16 @@
             }
 
             try {
+                // Close any existing WebSocket connection before starting new task
+                if (ws && ws.readyState !== WebSocket.CLOSED) {
+                    console.log('Closing existing WebSocket before starting new task...');
+                    ws.close();
+                    ws = null;
+                }
+                
+                // Clear previous task data: logs, video, and screenshots
+                clearPreviousTaskData();
+                
                 submitBtn.disabled = true;
                 submitBtn.innerHTML = '<span class="loading"></span> 創建任務中...';
                 updateConnectionStatus('connecting');
@@ -646,6 +656,13 @@
         }
 
         function connectWebSocket(sessionId, task) {
+            // Close existing WebSocket connection if any
+            if (ws && ws.readyState !== WebSocket.CLOSED) {
+                console.log('Closing existing WebSocket connection...');
+                ws.close();
+                ws = null;
+            }
+            
             const wsUrl = `${API_BASE.replace('http', 'ws')}/ws/${sessionId}`;
             ws = new WebSocket(wsUrl);
 
@@ -809,6 +826,66 @@
         let screenshotCount = 0;
         let galleryExpanded = true;
 
+        function clearPreviousTaskData() {
+            // Clear logs container and show empty state
+            const logsContainer = document.getElementById('logsContainer');
+            if (logsContainer) {
+                logsContainer.innerHTML = `
+                    <div class="empty-state">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                        </svg>
+                        <p>等待任務開始...</p>
+                        <p style="font-size: 12px; margin-top: 8px;">操作步驟將在此顯示</p>
+                    </div>
+                `;
+            }
+            
+            // Hide and clear video section
+            const videoSection = document.getElementById('videoSection');
+            const videoElement = document.getElementById('taskVideo');
+            if (videoSection) {
+                videoSection.style.display = 'none';
+            }
+            if (videoElement) {
+                // Remove event listeners to prevent error messages when clearing
+                videoElement.onerror = null;
+                videoElement.onloadedmetadata = null;
+                videoElement.oncanplay = null;
+                
+                // Pause and reset video
+                videoElement.pause();
+                videoElement.src = '';
+                videoElement.load(); // Reset video element
+            }
+            
+            // Hide and clear screenshots section
+            const screenshotsSection = document.getElementById('screenshotsSection');
+            const screenshotsGallery = document.getElementById('screenshotsGallery');
+            if (screenshotsSection) {
+                screenshotsSection.style.display = 'none';
+            }
+            if (screenshotsGallery) {
+                screenshotsGallery.innerHTML = '';
+            }
+            
+            // Reset screenshot count
+            screenshotCount = 0;
+            const screenshotCountElement = document.getElementById('screenshotCount');
+            if (screenshotCountElement) {
+                screenshotCountElement.textContent = '(0)';
+            }
+            
+            // Reset gallery expanded state
+            galleryExpanded = true;
+            const galleryToggleText = document.getElementById('galleryToggleText');
+            if (galleryToggleText) {
+                galleryToggleText.textContent = '收起';
+            }
+            
+            console.log('🧹 Previous task data cleared');
+        }
+
         function addScreenshotToGallery(screenshotUrl, stepNumber) {
             const screenshotsSection = document.getElementById('screenshotsSection');
             const screenshotsGallery = document.getElementById('screenshotsGallery');
@@ -911,19 +988,28 @@
                 // Use absolute URL if relative
                 const absoluteUrl = videoUrl.startsWith('http') ? videoUrl : `${API_BASE}${videoUrl}`;
                 
+                // Clear any previous error handlers before setting new source
+                videoElement.onerror = null;
+                videoElement.onloadedmetadata = null;
+                videoElement.oncanplay = null;
+                
+                // Set new source
                 videoElement.src = absoluteUrl;
                 videoElement.load(); // Force reload
                 videoSection.style.display = 'block';
                 
-                // Add event listeners for debugging
+                // Add event listeners for debugging (only after source is set)
                 videoElement.onerror = function(e) {
                     console.error('Video load error:', e);
-                    addLogEntry('error', `❌ 視頻載入失敗: ${absoluteUrl}`);
+                    // Only log error if the video URL matches (avoid logging errors from cleared videos)
+                    if (videoElement.src === absoluteUrl || videoElement.src.endsWith(absoluteUrl.split('/').pop())) {
+                        addLogEntry('error', `❌ 影片載入失敗: ${absoluteUrl}`);
+                    }
                 };
                 
                 videoElement.onloadedmetadata = function() {
                     console.log('Video metadata loaded:', videoElement.duration);
-                    addLogEntry('status', `📹 視頻已準備就緒: ${absoluteUrl}`);
+                    addLogEntry('status', `📹 影片已準備就緒: ${absoluteUrl}`);
                 };
                 
                 videoElement.oncanplay = function() {

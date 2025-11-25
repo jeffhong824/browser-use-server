@@ -166,7 +166,7 @@ class BrowserAgentService:
             # Send initial status
             yield {
                 "type": "status",
-                "message": "🚀 开始执行任务...",
+                "message": "🚀 開始執行任務...",
                 "data": {"session_id": session_id, "task": task},
             }
 
@@ -490,24 +490,19 @@ class BrowserAgentService:
             except asyncio.CancelledError:
                 pass
             
-            # Close browser to ensure video is saved
+            # Close browser to ensure video is saved (before finding video file)
+            # Note: This will also be called in finally block, but we close early
+            # to ensure video file is written before we search for it
+            browser_closed = False
             try:
                 if hasattr(agent, 'browser_session') and agent.browser_session:
-                    # Get browser session ID before closing (might be used in video filename)
-                    browser_session_id = None
-                    if hasattr(agent.browser_session, 'session_id'):
-                        browser_session_id = agent.browser_session.session_id
-                    elif hasattr(agent.browser_session, 'cdp_url'):
-                        # Extract session ID from CDP URL if available
-                        cdp_url = agent.browser_session.cdp_url
-                        logger.info(f"📹 Browser CDP URL: {cdp_url}")
-                    
                     await agent.browser_session.close()
                     logger.info("📹 Browser closed, waiting for video to be saved...")
-                    # Wait longer for video file to be written (browser-use may need time)
+                    # Wait for video file to be written (browser-use may need time)
                     await asyncio.sleep(3)
+                    browser_closed = True
             except Exception as e:
-                logger.debug(f"Error closing browser: {e}")
+                logger.debug(f"Error closing browser in normal flow: {e}")
             
             # Find the video file associated with this session
             # browser-use saves videos with a UUID-based naming pattern
@@ -545,7 +540,7 @@ class BrowserAgentService:
                 video_path = None
             
             # Extract final result from history - look for done action result
-            final_message = "✅ 任务完成！"
+            final_message = "✅ 任務完成！"
             result_summary = ""
             result_text = ""
             
@@ -613,9 +608,9 @@ class BrowserAgentService:
             
             if result_text:
                 result_summary = result_text.strip()
-                final_message = f"✅ 任务完成！"
+                final_message = f"✅ 任務完成！"
             else:
-                result_summary = "任务已执行完成，但未获取到详细结果。"
+                result_summary = "任務已執行完成，但未獲取到詳細結果。"
             
             # Prepare completion data with video path and result
             completion_data = {
@@ -646,10 +641,10 @@ class BrowserAgentService:
 
         except asyncio.TimeoutError as e:
             logger.error(f"⏰ Browser agent timeout: {e}", exc_info=True)
-            error_msg = "浏览器启动或执行超时。这可能是由于：\n1. 浏览器启动时间过长\n2. 网络连接问题\n3. Docker 容器资源不足\n\n建议：\n- 检查 Docker 容器资源（CPU/内存）\n- 确认网络连接正常\n- 尝试重启服务"
+            error_msg = "瀏覽器啟動或執行逾時。這可能是由於：\n1. 瀏覽器啟動時間過長\n2. 網路連線問題\n3. Docker 容器資源不足\n\n建議：\n- 檢查 Docker 容器資源（CPU/記憶體）\n- 確認網路連線正常\n- 嘗試重新啟動服務"
             yield {
                 "type": "error",
-                "message": f"❌ 执行超时: {str(e)}",
+                "message": f"❌ 執行逾時: {str(e)}",
                 "data": {
                     "session_id": session_id,
                     "error": str(e),
@@ -664,19 +659,38 @@ class BrowserAgentService:
             
             # Provide more helpful error messages
             if "CDP" in error_msg or "client not initialized" in error_msg:
-                error_msg = f"浏览器连接失败: {error_msg}\n\n可能原因：\n1. 浏览器启动失败\n2. CDP 连接超时\n3. Docker 容器配置问题\n\n建议检查：\n- Docker compose 配置（shm_size, security_opt）\n- 浏览器是否正确安装\n- 容器日志中的详细错误信息"
+                error_msg = f"瀏覽器連線失敗: {error_msg}\n\n可能原因：\n1. 瀏覽器啟動失敗\n2. CDP 連線逾時\n3. Docker 容器設定問題\n\n建議檢查：\n- Docker compose 設定（shm_size, security_opt）\n- 瀏覽器是否正確安裝\n- 容器日誌中的詳細錯誤訊息"
             elif "timeout" in error_msg.lower():
-                error_msg = f"操作超时: {error_msg}\n\n建议：\n- 增加超时时间\n- 检查网络连接\n- 确认目标网站可访问"
+                error_msg = f"操作逾時: {error_msg}\n\n建議：\n- 增加逾時時間\n- 檢查網路連線\n- 確認目標網站可存取"
             
             yield {
                 "type": "error",
-                "message": f"❌ 执行出错: {error_msg}",
+                "message": f"❌ 執行出錯: {error_msg}",
                 "data": {
                     "session_id": session_id,
                     "error": str(e),
                     "error_type": error_type,
                 },
             }
+        finally:
+            # Always close browser session to prevent resource leaks
+            # This ensures cleanup even if task completes successfully or fails
+            # Only close if not already closed in normal flow
+            try:
+                if 'agent' in locals() and hasattr(agent, 'browser_session') and agent.browser_session:
+                    if not browser_closed if 'browser_closed' in locals() else True:
+                        logger.info("🧹 Closing browser session for cleanup...")
+                        try:
+                            await agent.browser_session.close()
+                            logger.info("✅ Browser session closed successfully")
+                            # Wait for video file to be written (browser-use may need time)
+                            await asyncio.sleep(1)  # Shorter wait in finally since already waited in normal flow
+                        except Exception as close_error:
+                            logger.warning(f"⚠️  Error closing browser session: {close_error}")
+                    else:
+                        logger.debug("🧹 Browser already closed in normal flow")
+            except Exception as e:
+                logger.debug(f"Error in browser cleanup: {e}")
 
     async def get_task_status(self, session_id: str) -> dict:
         """
