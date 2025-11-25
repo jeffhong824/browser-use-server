@@ -29,6 +29,8 @@ services:
       - ./screenshots:/app/screenshots
       - ./data:/app/data
       - ./outputs:/app/outputs
+      # 开发模式：实时同步前端代码（可选，取消注释以启用）
+      # - ./src:/app/src
     networks:
       - browser-use-network
     restart: unless-stopped

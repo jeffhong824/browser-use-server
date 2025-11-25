@@ -121,9 +121,35 @@ class BrowserAgentService:
                 api_key=self.openai_api_key,
             )
 
-            # Create agent
+            # Add system prompt to emphasize Traditional Chinese
+            system_prompt = """你是一個專業的瀏覽器自動化助手。請遵循以下重要指示：
+
+1. **語言使用**：
+   - 優先使用繁體中文進行所有回應和說明
+   - 如果使用者使用英文，可以使用英文回應
+   - 所有日誌、思考過程、規劃和驗證結果都應使用繁體中文
+   - 只有在必要時（如技術術語或專有名詞）才使用英文
+
+2. **回應風格**：
+   - 使用清晰、專業的繁體中文
+   - 保持友善和幫助性的語調
+   - 詳細說明每個步驟的目的和結果
+
+3. **任務執行**：
+   - 仔細分析使用者需求
+   - 規劃清晰的執行步驟
+   - 驗證每個步驟的結果
+   - 確保任務完整完成
+
+請記住：繁體中文是主要語言，英文僅作為輔助。"""
+
+            # Create agent with system prompt
+            # Note: browser-use Agent may accept system_prompt or similar parameter
+            # We'll prepend it to the task if the Agent doesn't support it directly
+            enhanced_task = f"{system_prompt}\n\n使用者任務：{task}"
+            
             agent = Agent(
-                task=task,
+                task=enhanced_task,
                 llm=llm,
                 browser=browser,
             )
